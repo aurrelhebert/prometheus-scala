@@ -6,6 +6,7 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import scala.collection.immutable
 import io.prometheus.client.Counter
+import fr.davit.akka.http.metrics.prometheus.{PrometheusRegistry, PrometheusSettings}
 
 //#user-case-classes
 final case class User(name: String, age: Int, countryOfResidence: String)
@@ -25,8 +26,7 @@ object UserRegistry {
   final case class ActionPerformed(description: String)
 
   final val requestCounter: Counter = Counter.build()
-     .name("my_awesome_counter_user").help("Total requests.").register();
-
+     .name("my_awesome_counter_user").help("Total requests.").register(MetricsController.registry.underlying)
 
   def apply(): Behavior[Command] = registry(Set.empty)
 

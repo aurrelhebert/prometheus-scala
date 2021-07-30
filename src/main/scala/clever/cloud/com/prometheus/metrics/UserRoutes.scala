@@ -17,7 +17,7 @@ import io.prometheus.client.Counter
 class UserRoutes(userRegistry: ActorRef[UserRegistry.Command])(implicit val system: ActorSystem[_]) {
 
   val requestRoute: Counter = Counter.build()
-     .name("my_awesome_counter_route").help("Total requests.").register();
+     .name("my_awesome_counter_route").help("Total requests.").register(MetricsController.registry.underlying)
 
   //#user-routes-class
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
