@@ -12,7 +12,7 @@ class MetricsController {
 
   import MetricsController._
 
-  val route: Route = (get & path("admin" / "prometheus" / "metrics")) (metrics(registry))
+  val route: Route = (get & path("metrics")) (metrics(registry))
 }
 
 object MetricsController {
