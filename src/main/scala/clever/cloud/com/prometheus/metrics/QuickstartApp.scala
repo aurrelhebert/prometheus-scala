@@ -35,12 +35,6 @@ object QuickstartApp {
     }
   }
 
-  /*
-  public PrometheusMetricsServlet(MetricRegistry registry) {
- mCollectorRegistry = new CollectorRegistry();
- mCollectorRegistry.register(new DropwizardExports(registry));
-}
-  */
   //#start-http-server
   def main(args: Array[String]): Unit = {
     //#server-bootstrapping
@@ -51,11 +45,7 @@ object QuickstartApp {
       val mainRoutes = new UserRoutes(userRegistryActor)(context.system)
 
       val route = mainRoutes.userRoutes ~ MetricsController.routes
-
-      //val routes = MetricsController.routes
-      //val routesWithMetrics = metrics(mainRoutes.userRoutes ~ routes).recordMetrics(MetricsController.registry)
       startHttpServer(route)(context.system)
-      //val bindingFuture = Http().bindAndHandle(route, "localhost", 9000)(context.system)
 
       Behaviors.empty
     }
