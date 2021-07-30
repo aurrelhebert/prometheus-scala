@@ -1,4 +1,4 @@
-package clever.cloud.com.prometheus.metrics
+package com.clevercloud.prometheus.metrics
 
 import akka.http.scaladsl.server.Directives.{path, _}
 import akka.http.scaladsl.server.Route

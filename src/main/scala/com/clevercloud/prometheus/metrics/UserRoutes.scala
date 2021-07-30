@@ -1,11 +1,11 @@
-package clever.cloud.com.prometheus.metrics
+package com.clevercloud.prometheus.metrics
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 
 import scala.concurrent.Future
-import clever.cloud.com.prometheus.metrics.UserRegistry._
+import com.clevercloud.prometheus.metrics.UserRegistry._
 import akka.actor.typed.ActorRef
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.AskPattern._

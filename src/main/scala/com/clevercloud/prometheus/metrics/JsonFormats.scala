@@ -1,6 +1,6 @@
-package clever.cloud.com.prometheus.metrics
+package com.clevercloud.prometheus.metrics
 
-import clever.cloud.com.prometheus.metrics.UserRegistry.ActionPerformed
+import com.clevercloud.prometheus.metrics.UserRegistry.ActionPerformed
 
 //#json-formats
 import spray.json.DefaultJsonProtocol

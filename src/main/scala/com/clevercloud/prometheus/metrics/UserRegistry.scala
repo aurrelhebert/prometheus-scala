@@ -1,4 +1,4 @@
-package clever.cloud.com.prometheus.metrics
+package com.clevercloud.prometheus.metrics
 
 //#user-registry-actor
 import akka.actor.typed.ActorRef
