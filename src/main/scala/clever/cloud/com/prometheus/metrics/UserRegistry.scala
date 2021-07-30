@@ -25,7 +25,7 @@ object UserRegistry {
   final case class GetUserResponse(maybeUser: Option[User])
   final case class ActionPerformed(description: String)
 
-  final val requestCounter: Counter = Counter.build()
+  final val requestUserCounter: Counter = Counter.build()
      .name("my_awesome_counter_user").help("Total requests.").register(MetricsController.registry.underlying)
 
   def apply(): Behavior[Command] = registry(Set.empty)
@@ -33,7 +33,7 @@ object UserRegistry {
   private def registry(users: Set[User]): Behavior[Command] =
     Behaviors.receiveMessage {
       case GetUsers(replyTo) =>
-        requestCounter.inc()
+        requestUserCounter.inc()
         replyTo ! Users(users.toSeq)
         Behaviors.same
       case CreateUser(user, replyTo) =>
