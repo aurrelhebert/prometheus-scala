@@ -17,7 +17,7 @@ import io.prometheus.client.Counter
 class UserRoutes(userRegistry: ActorRef[UserRegistry.Command])(implicit val system: ActorSystem[_]) {
 
   val requestRoute: Counter = Counter.build()
-     .name("my_awesome_counter_route").help("Total requests.").register(MetricsController.registry.underlying)
+     .name("my_awesome_counter_route").labelNames("route","verb").help("Total requests.").register(MetricsController.registry.underlying)
 
   //#user-routes-class
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
@@ -46,10 +46,11 @@ class UserRoutes(userRegistry: ActorRef[UserRegistry.Command])(implicit val syst
         pathEnd {
           concat(
             get {
-              requestRoute.inc()
+              requestRoute.labels("users", "get").inc()
               complete(getUsers())
             },
             post {
+              requestRoute.labels("users", "post").inc()
               entity(as[User]) { user =>
                 onSuccess(createUser(user)) { performed =>
                   complete((StatusCodes.Created, performed))
@@ -62,6 +63,7 @@ class UserRoutes(userRegistry: ActorRef[UserRegistry.Command])(implicit val syst
         path(Segment) { name =>
           concat(
             get {
+              requestRoute.labels("single_user", "get").inc()
               //#retrieve-user-info
               rejectEmptyResponse {
                 onSuccess(getUser(name)) { response =>
@@ -71,6 +73,7 @@ class UserRoutes(userRegistry: ActorRef[UserRegistry.Command])(implicit val syst
               //#retrieve-user-info
             },
             delete {
+              requestRoute.labels("single_user", "delete").inc()
               //#users-delete-logic
               onSuccess(deleteUser(name)) { performed =>
                 complete((StatusCodes.OK, performed))
