@@ -25,26 +25,32 @@ object UserRegistry {
   final case class GetUserResponse(maybeUser: Option[User])
   final case class ActionPerformed(description: String)
 
+  // [NATIVE] use direclty the Prometheus library to declare a Counter metrics, (not required when using the metricsActor)
   final val requestUserCounter: Counter = Counter.build()
      .name("my_awesome_counter_user").help("Total requests.").register(MetricsController.registry.underlying)
 
-  def apply(): Behavior[Command] = registry(Set.empty)
+  def apply(metricsActor: ActorRef[MetricsAction]): Behavior[Command] = registry(Set.empty, metricsActor)
 
-  private def registry(users: Set[User]): Behavior[Command] =
+  private def registry(users: Set[User], metricsActor: ActorRef[MetricsAction]): Behavior[Command] =
     Behaviors.receiveMessage {
       case GetUsers(replyTo) =>
+
+        // [NATIVE] use direclty the Prometheus library to increment a declared Counter metrics
         requestUserCounter.inc()
+
+        // [ACTOR] use the metricsActor to increment a custom metrics Counter
+        metricsActor.!(IncrementCounter(RegisterUserCounter))
         replyTo ! Users(users.toSeq)
         Behaviors.same
       case CreateUser(user, replyTo) =>
         replyTo ! ActionPerformed(s"User ${user.name} created.")
-        registry(users + user)
+        registry(users + user, metricsActor)
       case GetUser(name, replyTo) =>
         replyTo ! GetUserResponse(users.find(_.name == name))
         Behaviors.same
       case DeleteUser(name, replyTo) =>
         replyTo ! ActionPerformed(s"User $name deleted.")
-        registry(users.filterNot(_.name == name))
+        registry(users.filterNot(_.name == name), metricsActor)
     }
 }
 //#user-registry-actor

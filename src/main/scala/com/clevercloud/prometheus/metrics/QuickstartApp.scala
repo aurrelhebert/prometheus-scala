@@ -24,6 +24,7 @@ object QuickstartApp {
     // Akka HTTP still needs a classic ActorSystem to start
     import system.executionContext
 
+    // Start a newMeteredServerAt to collect AKKA and custom Metrics using MetricsController.registry
     val futureBinding = Http().newMeteredServerAt("localhost", 8080, MetricsController.registry).bind(routes)
     futureBinding.onComplete {
       case Success(binding) =>
@@ -39,11 +40,17 @@ object QuickstartApp {
   def main(args: Array[String]): Unit = {
     //#server-bootstrapping
     val rootBehavior = Behaviors.setup[Nothing] { context =>
-      val userRegistryActor = context.spawn(UserRegistry(), "UserRegistryActor")
+
+      // Start a specific metricsActor dedicated to handle custom Metrics
+      val metricsActor = context.spawn(MetricsActor(MetricsController.registry.underlying), "MetricsActor")
+
+      // Start user and route actor with metricsActor
+      val userRegistryActor = context.spawn(UserRegistry(metricsActor), "UserRegistryActor")
       context.watch(userRegistryActor)
 
-      val mainRoutes = new UserRoutes(userRegistryActor)(context.system)
+      val mainRoutes = new UserRoutes(userRegistryActor, metricsActor)(context.system)
 
+      // Add "/metrics" route to the application
       val route = mainRoutes.userRoutes ~ MetricsController.routes
       startHttpServer(route)(context.system)
 

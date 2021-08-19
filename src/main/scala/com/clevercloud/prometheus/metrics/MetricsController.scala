@@ -7,9 +7,7 @@ import fr.davit.akka.http.metrics.prometheus.marshalling.PrometheusMarshallers._
 import fr.davit.akka.http.metrics.prometheus.{Buckets, PrometheusRegistry, PrometheusSettings, Quantiles}
 import io.prometheus.client.CollectorRegistry
 
-
 class MetricsController {
-
   import MetricsController._
 
   val route: Route = (get & path("metrics")) (metrics(registry))
