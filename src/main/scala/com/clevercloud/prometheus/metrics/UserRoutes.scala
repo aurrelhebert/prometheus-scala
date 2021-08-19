@@ -55,10 +55,10 @@ class UserRoutes(userRegistry: ActorRef[UserRegistry.Command], metricsActor: Act
             },
             post {
               // [NATIVE] use direclty the Prometheus library to increment a declared Counter metrics
-              requestRouteCounter.labels("users", "post").inc()
+              requestRouteCounter.labels("users", "post").inc(10)
 
               // [ACTOR] use the metricsActor to increment a custom metrics Counter
-              metricsActor.!(IncrementCounter(RegisterRouteCounter("users", "post")))
+              metricsActor.!(IncrementCounterBy(RegisterRouteCounter("users", "post"), 10))
               entity(as[User]) { user =>
                 onSuccess(createUser(user)) { performed =>
                   complete((StatusCodes.Created, performed))

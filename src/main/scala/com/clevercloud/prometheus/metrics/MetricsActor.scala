@@ -20,6 +20,7 @@ case class RegisterRouteCounter(route: String, verb: String) extends RegisterMet
 // MetricsAction the action done by the MetricsActor, in case of a Counter only increment action
 sealed trait MetricsAction
 case class IncrementCounter(counter: RegisterMetrics) extends MetricsAction
+case class IncrementCounterBy(counter: RegisterMetrics, by: Long) extends MetricsAction
 
 // MetricsProperties the properties as the name or the help field of a RegisterMetrics
 object MetricsProperties {
@@ -49,14 +50,20 @@ class MetricsActor(registry: CollectorRegistry, context: ActorContext[MetricsAct
   implicit val executionContext = system.executionContext
 
   // registeredCounter known registerd metrics
-  var registeredCounter = scala.collection.mutable.Map[RegisterMetrics, Counter]()
+  var registeredCounter = scala.collection.mutable.Map[String, Counter]()
 
   // onMessage Actions to perform when the Metrics actor receive a message
   override def onMessage(message: MetricsAction): Behavior[MetricsAction] = message match {
-      case IncrementCounter(counter) => 
-        val prometheusCounter = registeredCounter.getOrElse(counter, registerUserCounter(counter))
-        incrementUserCounter(counter, prometheusCounter)
-        Behaviors.same
+      case IncrementCounter(counter) => {
+          val prometheusCounter = registeredCounter.getOrElse(MetricsProperties(counter).name, registerUserCounter(counter))
+          incrementUserCounter(counter, prometheusCounter, None)
+          Behaviors.same
+      }
+      case IncrementCounterBy(counter, by) => {
+          val prometheusCounter = registeredCounter.getOrElse(MetricsProperties(counter).name, registerUserCounter(counter))
+          incrementUserCounter(counter, prometheusCounter, Some(by))
+          Behaviors.same
+      }
     }
 
   // registerUserCounter will register a user Metrics counter
@@ -64,52 +71,48 @@ class MetricsActor(registry: CollectorRegistry, context: ActorContext[MetricsAct
     val counterProperties = MetricsProperties(counter)
 
     // Load labelNames, will be empty for an Object class
-    val labelNames = counter.getClass().getFields()
-
-    val requestUserCounter: Counter = if (labelNames.isEmpty) {
-      // Build and register a Prometheus counter based on the counter properties
-      Counter.build()
+    val labelNames = counter.getClass().getDeclaredFields().filter(field => field.getName() != "MODULE$" )
+    val counterRequestBuilder = Counter.build()
         .name(counterProperties.name)
         .help(counterProperties.help)
-        .register(registry)
-    } else {
-      // Build and register a Prometheus counter based on the counter properties and the public Class fields
-      Counter.build()
-        .name(counterProperties.name)
-        .help(counterProperties.help)
+    if (!labelNames.isEmpty) {
+      counterRequestBuilder
         .labelNames(
           labelNames
-            .filter(field => field.isSynthetic())
             .sortBy(field => field.getName())
             .map(field => field.getName())
           : _*)
-        .register(registry)
     }
-    registeredCounter += (counter -> requestUserCounter)
+    val requestUserCounter: Counter = counterRequestBuilder.register(registry)
+    registeredCounter += (MetricsProperties(counter).name -> requestUserCounter)
     requestUserCounter
   }
 
   // incrementUserCounter handle a prometheus counter increment
-  def incrementUserCounter(counter: RegisterMetrics, prometheusCounter: Counter) {
+  def incrementUserCounter(counter: RegisterMetrics, prometheusCounter: Counter, by: Option[Long]) {
+    val increment = by.getOrElse(1L)
 
     // Load labelNames, will be empty for an Object class
-    val labelNames = counter.getClass().getFields()
+    val labelNames = counter.getClass().getDeclaredFields().filter(field => field.getName() != "MODULE$" )
     if (labelNames.isEmpty) {
-
       // Increment the associated Prometheus counter 
       prometheusCounter
-        .inc() 
-    } else { 
+        .inc(increment) 
+    }  else { 
 
       // Increment the associated Prometheus counter with the the public Class fields
       prometheusCounter
         .labels(
           labelNames
-            .filter(field => field.isSynthetic())
             .sortBy(field => field.getName())
-            .map(field => field.getName())
+            .map(field => {
+                field.setAccessible(true)
+                val value = field.get(counter).asInstanceOf[String]
+                field.setAccessible(false)
+                value
+            })
           : _*)
-        .inc()
+        .inc(increment)
     }
   }
 }
