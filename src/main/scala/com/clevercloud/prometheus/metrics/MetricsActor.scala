@@ -9,6 +9,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{Scheduler => TypedScheduler}
 import io.prometheus.client.Counter
 import io.prometheus.client.CollectorRegistry
+import org.slf4j.Logger
 
 //#user-case-classes
 
@@ -48,20 +49,30 @@ class MetricsActor(registry: CollectorRegistry, context: ActorContext[MetricsAct
   implicit val scheduler: TypedScheduler = schedulerFromActorSystem(context.system)
   implicit val system = context.system
   implicit val executionContext = system.executionContext
+  val log: Logger = context.log
+
+  val countersToRegisters: List[RegisterMetrics] = List(RegisterUserCounter, RegisterRouteCounter("route","verb"))
+  val registeredCounter = Map(countersToRegisters.map{counter => (MetricsProperties(counter).name,  registerUserCounter(counter))} : _*);
 
   // registeredCounter known registerd metrics
-  var registeredCounter = scala.collection.mutable.Map[String, Counter]()
+  //var registeredCounter = scala.collection.mutable.Map[String, Counter]()
 
   // onMessage Actions to perform when the Metrics actor receive a message
   override def onMessage(message: MetricsAction): Behavior[MetricsAction] = message match {
       case IncrementCounter(counter) => {
-          val prometheusCounter = registeredCounter.getOrElse(MetricsProperties(counter).name, registerUserCounter(counter))
-          incrementUserCounter(counter, prometheusCounter, None)
+          registeredCounter.get(MetricsProperties(counter).name).fold(
+            log.error(s"Could not find registered counter: ${MetricsProperties(counter).name}")
+          )(
+            prometheusCounter => incrementUserCounter(counter, prometheusCounter, None)
+          )
           Behaviors.same
       }
       case IncrementCounterBy(counter, by) => {
-          val prometheusCounter = registeredCounter.getOrElse(MetricsProperties(counter).name, registerUserCounter(counter))
-          incrementUserCounter(counter, prometheusCounter, Some(by))
+          registeredCounter.get(MetricsProperties(counter).name).fold(
+            log.error(s"Could not find registered counter: ${MetricsProperties(counter).name}")
+          )(
+            prometheusCounter => incrementUserCounter(counter, prometheusCounter, Some(by))
+          )
           Behaviors.same
       }
     }
@@ -83,9 +94,7 @@ class MetricsActor(registry: CollectorRegistry, context: ActorContext[MetricsAct
             .map(field => field.getName())
           : _*)
     }
-    val requestUserCounter: Counter = counterRequestBuilder.register(registry)
-    registeredCounter += (MetricsProperties(counter).name -> requestUserCounter)
-    requestUserCounter
+    counterRequestBuilder.register(registry)
   }
 
   // incrementUserCounter handle a prometheus counter increment

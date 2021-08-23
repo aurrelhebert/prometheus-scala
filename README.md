@@ -25,8 +25,9 @@ The `QuickstartApp` intergrates the use of the Prometheus registry, and the coll
 ## Build an Actor to handle Custom Prometheus Metrics
 
 The code of the class `MetricsActor` is an exemple of how an actor can be coded to handle some Prometheus Metrics. This can useful as it enables to use typed Metrics enforcing the labels usage for some Metrics. 
-In the `UserRegistry`, you simply to send a message to this actor with action to perfome on the given Metrics. 
-At the moment, the metrics declared in this actor are not collected before they received their first message. 
+In this example, we declate two counter type `RegisterUserCounter` and `RegisterRouteCounter` with some `MetricsProperties` set.  
+Then in the `UserRegistry`, you simply have to send a message to this actor with the action (`IncrementCounter` or `IncrementCounterBy`) to increment the given Metrics. 
+All metrics to collect (`RegisterUserCounter` and `RegisterRouteCounter` counters in our example) needs to be declared in the `countersToRegisters` list of the `MetricsActor`. With prometheus, all metrics name should be unique! For a counter, if there is different value name, the counter need to be register only once.
 
 ## License
 
