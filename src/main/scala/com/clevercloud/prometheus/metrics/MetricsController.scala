@@ -7,9 +7,7 @@ import fr.davit.akka.http.metrics.prometheus.marshalling.PrometheusMarshallers._
 import fr.davit.akka.http.metrics.prometheus.{Buckets, PrometheusRegistry, PrometheusSettings, Quantiles}
 import io.prometheus.client.CollectorRegistry
 
-
 class MetricsController {
-
   import MetricsController._
 
   val route: Route = (get & path("metrics")) (metrics(registry))
@@ -23,9 +21,9 @@ object MetricsController {
     .withIncludePathDimension(true)
     .withIncludeMethodDimension(true)
     .withIncludeStatusDimension(true)
-    .withDurationConfig(Buckets(1, 2, 3, 5, 8, 13, 21, 34))
-    .withReceivedBytesConfig(Quantiles(0.5, 0.75, 0.9, 0.95, 0.99))
-    .withSentBytesConfig(PrometheusSettings.DefaultQuantiles)
+    .withDurationConfig(Buckets(5.0))
+    .withReceivedBytesConfig(Quantiles())
+    .withSentBytesConfig(Buckets(100.0))
     .withDefineError(_.status.isFailure)
 
   private val collector: CollectorRegistry = CollectorRegistry.defaultRegistry

@@ -14,7 +14,7 @@ import io.prometheus.client.Counter
 
 //#import-json-formats
 //#user-routes-class
-class UserRoutes(userRegistry: ActorRef[UserRegistry.Command])(implicit val system: ActorSystem[_]) {
+class UserRoutes(userRegistry: ActorRef[UserRegistry.Command], metricsActor: ActorRef[MetricsAction])(implicit val system: ActorSystem[_]) {
 
   val requestRouteCounter: Counter = Counter.build()
      .name("my_awesome_counter_route").labelNames("route","verb").help("Total requests.").register(MetricsController.registry.underlying)
@@ -46,11 +46,19 @@ class UserRoutes(userRegistry: ActorRef[UserRegistry.Command])(implicit val syst
         pathEnd {
           concat(
             get {
+              // [NATIVE] use direclty the Prometheus library to increment a declared Counter metrics
               requestRouteCounter.labels("users", "get").inc()
+
+              // [ACTOR] use the metricsActor to increment a custom metrics Counter
+              metricsActor.!(IncrementCounter(RegisterRouteCounter("users", "get")))
               complete(getUsers())
             },
             post {
-              requestRouteCounter.labels("users", "post").inc()
+              // [NATIVE] use direclty the Prometheus library to increment a declared Counter metrics
+              requestRouteCounter.labels("users", "post").inc(10)
+
+              // [ACTOR] use the metricsActor to increment a custom metrics Counter
+              metricsActor.!(IncrementCounterBy(RegisterRouteCounter("users", "post"), 10))
               entity(as[User]) { user =>
                 onSuccess(createUser(user)) { performed =>
                   complete((StatusCodes.Created, performed))
